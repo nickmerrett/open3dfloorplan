@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: open3dfloorplan
+
+resources:
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - route.yaml
+
+images:
+  - name: open3dfloorplan
+    newName: your-registry/open3dfloorplan  # update with your registry
+    newTag: "1.0.0"

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open3dfloorplan
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # RWO PVC can't be mounted by two pods simultaneously
+  selector:
+    matchLabels:
+      app: open3dfloorplan
+  template:
+    metadata:
+      labels:
+        app: open3dfloorplan
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 0  # root group — matches GID 0 permissions set in Dockerfile
+      containers:
+        - name: open3dfloorplan
+          image: open3dfloorplan:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5173
+          env:
+            - name: PORT
+              value: "5173"
+            - name: DB_PATH
+              value: "/app/data/projects.db"
+            - name: NODE_ENV
+              value: "production"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5173
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5173
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: open3dfloorplan-data
